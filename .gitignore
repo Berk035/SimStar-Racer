@@ -1,0 +1,11 @@
+Engine/
+PythonAPI/
+runs/
+saved_models/
+SimStar/
+trained_models
+
+environment.md
+Manifest_DebugFiles_Linux.txt
+Manifest_NonUFSFiles_Linux.txt
+SimStar.sh
