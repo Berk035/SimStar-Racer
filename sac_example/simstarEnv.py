@@ -187,7 +187,7 @@ class SimstarEnv(gym.Env):
         oppo = simstar_obs['opponents']
         min_opponent=np.min(oppo)
 
-        progress = spx * (np.cos(angle) - np.abs(np.sin(angle)))
+        progress = 1.5*spx * (np.cos(angle) - np.abs(np.sin(angle)))
         reward = progress - (spx) * np.abs(trackPos)
 
         #Encourages to directional driving.
@@ -205,7 +205,13 @@ class SimstarEnv(gym.Env):
         elif min_opponent<1: reward-=5
         elif min_opponent<0.5: reward-=10
 
-        curve = simstar_obs['curvature']
+        road = self.main_vehicle.get_road_deviation_info()
+        curve = road['curvature']
+        CURVE_TRESH=0.5
+        
+        if curve >0.01 and np.abs(trackPos)>CURVE_TRESH: reward-=2.5
+        elif curve>0.02 and np.abs(trackPos)>CURVE_TRESH: reward-=5
+        elif curve>0.03 and np.abs(trackPos)>CURVE_TRESH: reward-=10
 
         if collision:
             print("[SimstarEnv] collision with opponent vehicle")
@@ -254,7 +260,7 @@ class SimstarEnv(gym.Env):
         return observation, reward, done, summary
 
     def make_observation(self, simstar_obs):
-        names = ['angle', 'speedX', 'speedY', 'opponents','track','trackPos','curvature']
+        names = ['angle', 'speedX', 'speedY', 'opponents','track','trackPos']
         Observation = col.namedtuple('Observation', names)
 
         return Observation( angle=np.array(simstar_obs['angle'], dtype=np.float32)/1.,
@@ -262,8 +268,7 @@ class SimstarEnv(gym.Env):
                             speedY=np.array(simstar_obs['speedY'], dtype=np.float32)/self.default_speed,
                             opponents=np.array(simstar_obs['opponents'], dtype=np.float32)/20.,
                             track=np.array(simstar_obs['track'], dtype=np.float32)/200.,
-                            trackPos=np.array(simstar_obs['trackPos'], dtype=np.float32)/1.,
-                            curvature=np.array(simstar_obs['curvature'], dtype=np.float32)/1.)
+                            trackPos=np.array(simstar_obs['trackPos'], dtype=np.float32)/1.)
 
     def ms_to_kmh(self, ms):
         return 3.6 * ms
@@ -341,8 +346,7 @@ class SimstarEnv(gym.Env):
             'opponents':opponents ,
             'track': track,                
             'trackPos': trackPos,
-            'damage': damage,
-            'curvature': curve
+            'damage': damage
             }
 
         return simstar_obs

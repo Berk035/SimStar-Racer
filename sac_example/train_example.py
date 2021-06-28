@@ -18,7 +18,7 @@ TRAIN = 1
 USE_WANDB  = False
 
 # ./trained_models/EVALUATION_NAME_{EVALUATION_REWARD};      will be used only if TRAIN = 0
-EVALUATION_REWARD = 55262
+EVALUATION_REWARD = 58337
 
 # "best" or "checkpoint";      will be used only if TRAIN = 0
 EVALUATION_NAME = "best"
@@ -78,7 +78,7 @@ def train():
         "lrvalue": 0.0005,
         "lrpolicy": 0.0001,
         "gamma": 0.995,
-        "episodes": 3000,
+        "episodes": 10000,
         "buffersize": 250000,
         "tau": 0.001,
         "batchsize": 64,
@@ -105,7 +105,7 @@ def train():
 
     for eps in range(hyprm.episodes):
         obs = env.reset()
-        state = np.hstack((obs.angle, obs.speedX, obs.speedY, obs.opponents, obs.track, obs.trackPos, obs.curvature))
+        state = np.hstack((obs.angle, obs.speedX, obs.speedY, obs.opponents, obs.track, obs.trackPos))
 
         episode_reward = 0.0
 
@@ -114,7 +114,7 @@ def train():
             action = np.array(agent.select_action(state=state))
             obs, reward, done, summary = env.step(action)
 
-            next_state = np.hstack((obs.angle, obs.speedX, obs.speedY, obs.opponents, obs.track, obs.trackPos, obs.curvature))
+            next_state = np.hstack((obs.angle, obs.speedX, obs.speedY, obs.opponents, obs.track, obs.trackPos))
 
             if (math.isnan(reward)):
                 print("\nBad Reward Found\n")
