@@ -184,18 +184,13 @@ class SimstarEnv(gym.Env):
         angle = simstar_obs['angle']
         spx = simstar_obs['speedX']
 
-        opponent = simstar_obs['opponents']
-        min_opponent=np.min(opponent)
+        oppo = simstar_obs['opponents']
+        min_opponent=np.min(oppo)
 
-        #Avoiding from opponent collisions
-        if min_opponent<2:   reward-=2.5
-        elif min_opponent<1: reward-=5
-        elif min_opponent<0.5: reward-=10
-
-        progress = 2*spx * (np.cos(angle) - np.abs(np.sin(angle)))
+        progress = spx * (np.cos(angle) - np.abs(np.sin(angle)))
         reward = progress - (spx) * np.abs(trackPos)
 
-        # AWS reward 2: Encoruages to directional driving.
+        #Encourages to directional driving.
         if np.abs(trackPos) < 0.1 : reward *= 1 
         elif np.abs(trackPos) < 0.2 : reward *= 0.8 
         elif np.abs(trackPos) < 0.3 : reward *= 0.7 
@@ -203,8 +198,14 @@ class SimstarEnv(gym.Env):
         elif np.abs(trackPos) < 0.5 : reward *= 0.5 
         elif np.abs(trackPos) < 0.6 : reward *= 0.4 
         elif np.abs(trackPos) < 0.7 : reward *= 0.1 
-        else : reward += 0.0
+        else : reward *= 0.0
 
+        #Avoiding from opponent collisions
+        if min_opponent<2:   reward-=2.5
+        elif min_opponent<1: reward-=5
+        elif min_opponent<0.5: reward-=10
+
+        curve = simstar_obs['curvature']
 
         if collision:
             print("[SimstarEnv] collision with opponent vehicle")
@@ -227,12 +228,13 @@ class SimstarEnv(gym.Env):
 
         self.progress_on_road = self.main_vehicle.get_progress_on_road()
         # TODO: will be updated accordingly
-        if self.progress_on_road == 1.0:
-            self.progress_on_road = 0.0
+        #if self.progress_on_road == 1.0:
+        #    self.progress_on_road = 0.0
 
         if self.progress_on_road > 2:
             print("[SimstarEnv] finished lap")
             summary['end_reason'] = 'lap_done'
+            reward+=100
             done = True
 
         self.time_step_slow += 1
@@ -252,7 +254,7 @@ class SimstarEnv(gym.Env):
         return observation, reward, done, summary
 
     def make_observation(self, simstar_obs):
-        names = ['angle', 'speedX', 'speedY', 'opponents','track','trackPos']
+        names = ['angle', 'speedX', 'speedY', 'opponents','track','trackPos','curvature']
         Observation = col.namedtuple('Observation', names)
 
         return Observation( angle=np.array(simstar_obs['angle'], dtype=np.float32)/1.,
@@ -260,7 +262,8 @@ class SimstarEnv(gym.Env):
                             speedY=np.array(simstar_obs['speedY'], dtype=np.float32)/self.default_speed,
                             opponents=np.array(simstar_obs['opponents'], dtype=np.float32)/20.,
                             track=np.array(simstar_obs['track'], dtype=np.float32)/200.,
-                            trackPos=np.array(simstar_obs['trackPos'], dtype=np.float32)/1.)
+                            trackPos=np.array(simstar_obs['trackPos'], dtype=np.float32)/1.,
+                            curvature=np.array(simstar_obs['curvature'], dtype=np.float32)/1.)
 
     def ms_to_kmh(self, ms):
         return 3.6 * ms
@@ -326,6 +329,8 @@ class SimstarEnv(gym.Env):
         # deviation from road center in meters
         trackPos = float(road_deviation['lat_dev']) / self.road_width
 
+        curve = float(road_deviation['curvature'])
+
         # if collision occurs, True. else False
         damage = bool( vehicle_ref.check_for_collision())
 
@@ -336,8 +341,10 @@ class SimstarEnv(gym.Env):
             'opponents':opponents ,
             'track': track,                
             'trackPos': trackPos,
-            'damage': damage
+            'damage': damage,
+            'curvature': curve
             }
+
         return simstar_obs
 
     def get_agent_observations(self):
