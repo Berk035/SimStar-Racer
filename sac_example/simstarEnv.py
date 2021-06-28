@@ -184,36 +184,26 @@ class SimstarEnv(gym.Env):
         angle = simstar_obs['angle']
         spx = simstar_obs['speedX']
 
-        
         opponent = simstar_obs['opponents']
         min_opponent=np.min(opponent)
 
-        # if min_opponent<3:   reward-=5
-        # elif min_opponent<2: reward-=7.5
-        # elif min_opponent<1: reward-=10
-
-        #Deprecated
-        # for dist_op in opponent:
-        #     if dist_op<3:
-        #         reward-=5
-        #     elif dist_op<1:
-        #         reward-=10
+        #Avoiding from opponent collisions
+        if min_opponent<2:   reward-=2.5
+        elif min_opponent<1: reward-=5
+        elif min_opponent<0.5: reward-=10
 
         progress = 2*spx * (np.cos(angle) - np.abs(np.sin(angle)))
         reward = progress - (spx) * np.abs(trackPos)
 
-        # AWS reward 2: 
-        if np.abs(trackPos) < 0.1 : reward += 1 
-        elif np.abs(trackPos) < 0.2 : reward += 0.8 
-        elif np.abs(trackPos) < 0.3 : reward += 0.7 
-        elif np.abs(trackPos) < 0.4 : reward += 0.6 
-        elif np.abs(trackPos) < 0.5 : reward += 0.5 
-        elif np.abs(trackPos) < 0.6 : reward += 0.4 
-        elif np.abs(trackPos) < 0.7 : reward += 0.1 
-        else : reward += 0.0 
-
-        #if distance_from_center <= marker_1:
-        #    current_reward *= 1.2
+        # AWS reward 2: Encoruages to directional driving.
+        if np.abs(trackPos) < 0.1 : reward *= 1 
+        elif np.abs(trackPos) < 0.2 : reward *= 0.8 
+        elif np.abs(trackPos) < 0.3 : reward *= 0.7 
+        elif np.abs(trackPos) < 0.4 : reward *= 0.6 
+        elif np.abs(trackPos) < 0.5 : reward *= 0.5 
+        elif np.abs(trackPos) < 0.6 : reward *= 0.4 
+        elif np.abs(trackPos) < 0.7 : reward *= 0.1 
+        else : reward += 0.0
 
 
         if collision:
