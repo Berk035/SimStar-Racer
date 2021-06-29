@@ -19,7 +19,6 @@ USE_WANDB  = False
 
 # ./trained_models/EVALUATION_NAME_{EVALUATION_REWARD};      will be used only if TRAIN = 0
 EVALUATION_REWARD = 507754
-#EVALUATION_REWARD = 508890
 
 # "best" or "checkpoint";      will be used only if TRAIN = 0
 EVALUATION_NAME = "best"
@@ -37,8 +36,8 @@ WITH_OPPONENT = True
 # when the process is required to be speeded up, the synchronized mode will have to be turned on
 SYNC_MODE = True
 
-# times speeding up the training process [1-6]
-SPEED_UP = 5
+# times speeding up the training process [1-6] 
+SPEED_UP = 6
 
 
 # port number can be updated from console argument
@@ -71,15 +70,15 @@ def train():
      add_opponents=WITH_OPPONENT, synronized_mode=SYNC_MODE,
      speed_up=SPEED_UP, host=HOST, port=PORT)
     
-    insize = 4 + env.track_sensor_size + env.opponent_sensor_size
+    insize = 4 + 3 + 2
     outsize = env.action_space.shape[0]
 
     # default hyper-parameters, has to be modified if required
     hyperparams = {
         "lrvalue": 0.0005,
         "lrpolicy": 0.0001,
-        "gamma": 0.995,
-        "episodes": 10000,
+        "gamma": 0.97,
+        "episodes": 15000,
         "buffersize": 250000,
         "tau": 0.001,
         "batchsize": 64,
@@ -89,8 +88,8 @@ def train():
     }
     HyperParams = namedtuple("HyperParams", hyperparams.keys())
     hyprm = HyperParams(**hyperparams)
-
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
     agent = Model(env, hyprm, insize, outsize).to(device)
     
     if TRAIN:
@@ -106,7 +105,7 @@ def train():
 
     for eps in range(hyprm.episodes):
         obs = env.reset()
-        state = np.hstack((obs.angle, obs.speedX, obs.speedY, obs.opponents, obs.track, obs.trackPos))
+        state = np.hstack((obs.angle, obs.speedX, obs.curvature, obs.min_opponents, obs.min_second_opponents, obs.track7,obs.track9, obs.track11, obs.trackPos))
 
         episode_reward = 0.0
 
@@ -115,7 +114,7 @@ def train():
             action = np.array(agent.select_action(state=state))
             obs, reward, done, summary = env.step(action)
 
-            next_state = np.hstack((obs.angle, obs.speedX, obs.speedY, obs.opponents, obs.track, obs.trackPos))
+            next_state = np.hstack((obs.angle, obs.speedX, obs.curvature, obs.min_opponents, obs.min_second_opponents, obs.track7,obs.track9, obs.track11, obs.trackPos))
 
             if (math.isnan(reward)):
                 print("\nBad Reward Found\n")
@@ -133,7 +132,7 @@ def train():
 
             state = next_state
 
-            if np.mod(step, 15) == 0:
+            if np.mod(step, 250) == 0:
                 print("Episode:", eps+1, " Step:", step, " Action:", action, " Reward:", reward)
 
         process = ((eps+1) / hyprm.episodes) * 100
@@ -147,7 +146,7 @@ def train():
         lap_progress = env.progress_on_road
 
         if TRAIN:
-            if (eps + 1) % 100 == 0:
+            if (eps + 1) % 1000 == 0:
                 print("Checkpoint is Saved !")
                 save_model(agent=agent, reward=episode_reward, name="checkpoint")
 
@@ -220,4 +219,5 @@ def load_model(agent, reward, name):
 
 
 if __name__ == "__main__":
+    
     train()
